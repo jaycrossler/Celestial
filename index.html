@@ -29,10 +29,6 @@
 		</style>
 		<script type="text/javascript" src="js/Stats.js"></script>
 		<script type="text/javascript" src="js/Three.js"></script>
-		<script type="text/javascript" src="src/extras/ImageUtils.js"></script>
-		<script type="text/javascript" src="src/extras/primitives/Plane.js"></script>
-		<script type="text/javascript" src="src/extras/primitives/Sphere.js"></script>
-		<script type="text/javascript" src="src/extras/primitives/Cylinder.js"></script>
 		<script type="text/javascript" src="js/Celestial.js"></script>
 		<script type="text/javascript" src="planets.json"></script>
 	</head>
@@ -57,7 +53,7 @@
 			
 			var container, stats, timedisplay;
 			var camera, moveForward, moveBackward, moveShouldStop=false;
-			var mesh, scene, renderer, projector;
+			var mesh, scene, renderer, projector, texture_placeholder;
 			var loginfo=0;
 
 			var mouseX = 0, mouseY = -100;
@@ -76,38 +72,82 @@
 
 				scene = new THREE.Scene();
 
+				init_sky();
+				//init_cylinder();
 				init_grid();
 				//init_shadow();
 				init_planets();
+				
+//				scene.addLight( new THREE.AmbientLight( 0x202020 ) );
 				
 				init_renderer();
 				
 				init_stats();
 				clickit();
+				//TODO: Surrount sun with glow
+//				materials.push( new THREE.MeshBasicMaterial( { color: 0x665500, blending: THREE.AdditiveBlending } ) );
 
 			}
-			function init_grid() {
+			function loadTexture( path ) {
+				var texture = new THREE.Texture( texture_placeholder ),
+					material = new THREE.MeshBasicMaterial( { map: texture } ),
+					image = new Image();
+				image.onload = function () {
+					texture.needsUpdate = true;
+					material.map.image = this;
+//					render();
+				};
+				image.src = path;
+				return material;
+			}			
+			function init_sky() {
+				texture_placeholder = document.createElement( 'canvas' );
+				texture_placeholder.width = 512;
+				texture_placeholder.height = 512;
+				
+				//Textures from Flex2D Cookbox - http://code.google.com/p/flex3cookbook1/downloads/list
+				var materials = [
+					loadTexture( 'textures/skybox/hot_nebula_90.jpg' ), // left
+					loadTexture( 'textures/skybox/hot_nebula_270.jpg' ), // right
+					loadTexture( 'textures/skybox/hot_nebula_top.jpg' ), // top
+					loadTexture( 'textures/skybox/hot_nebula_bottom.jpg' ), // bottom
+					loadTexture( 'textures/skybox/hot_nebula_0.jpg' ), // back
+					loadTexture( 'textures/skybox/hot_nebula_180.jpg' )  // front
+// 					loadTexture( 'textures/skybox/night_1.jpg' ), // right
+// 					loadTexture( 'textures/skybox/night_2.jpg' ), // left
+// 					loadTexture( 'textures/skybox/night_3.jpg' ), // top
+// 					loadTexture( 'textures/skybox/night_4.jpg' ), // bottom
+// 					loadTexture( 'textures/skybox/night_5.jpg' ), // back
+// 					loadTexture( 'textures/skybox/night_7.jpg' )  // front
+				];
+
+				mesh = new THREE.Mesh( new Cube( option_SolarSystem3DSizeXZ*2, option_SolarSystem3DSizeXZ*2, option_SolarSystem3DSizeXZ*2, 7, 7, materials, true ), new THREE.MeshFaceMaterial() );
+				mesh.overdraw = true;
+				scene.addObject( mesh );			
+			}
+			function init_cylinder() {
 				// Top and bottom Cylinders (flat, so they look like circles)				
 				// ( numSegs, topRad, botRad, height, topOffset, botOffset )
-// 				var cylinder = new THREE.Mesh(new Cylinder( 20, option_SolarSystem3DSizeXZ, option_SolarSystem3DSizeXZ, 0, 0, 0),
-// 					[new THREE.MeshBasicMaterial( {color: 0x222222, opacity: 1} ) ,
-// 					 new THREE.MeshBasicMaterial( {color: 0x222222, wireframe: true }) ] );
-// 				cylinder.position.x = 0;
-// 				cylinder.position.y = ( option_SolarSystem3DSizeY);
-// 				cylinder.position.z = 0;
-// 				cylinder.rotation.x = (Math.PI / 2);
-// 				scene.addObject(cylinder);
+				var cylinder = new THREE.Mesh(new Cylinder( 20, option_SolarSystem3DSizeXZ, option_SolarSystem3DSizeXZ, 0, 0, 0),
+					[new THREE.MeshBasicMaterial( {color: 0x222222, opacity: 1} ) ,
+					 new THREE.MeshBasicMaterial( {color: 0x222222, wireframe: true }) ] );
+				cylinder.position.x = 0;
+				cylinder.position.y = ( option_SolarSystem3DSizeY);
+				cylinder.position.z = 0;
+				cylinder.rotation.x = (Math.PI / 2);
+				scene.addObject(cylinder);
 
-// 				var cylinder = new THREE.Mesh(new Cylinder( 20, option_SolarSystem3DSizeXZ, option_SolarSystem3DSizeXZ, 0, 0, 0),
-// 					[new THREE.MeshBasicMaterial( {color: 0x222222, opacity: 1} ) ,
-// 					 new THREE.MeshBasicMaterial( {color: 0x222222, wireframe: true }) ] );			 
-// 				cylinder.position.x = 0;
-// 				cylinder.position.y = (-1 * option_SolarSystem3DSizeY);
-// 				cylinder.position.z = 0;
-// 				cylinder.rotation.x = (Math.PI / 2);
-// 				scene.addObject(cylinder);
+				var cylinder = new THREE.Mesh(new Cylinder( 20, option_SolarSystem3DSizeXZ, option_SolarSystem3DSizeXZ, 0, 0, 0),
+					[new THREE.MeshBasicMaterial( {color: 0x222222, opacity: 1} ) ,
+					 new THREE.MeshBasicMaterial( {color: 0x222222, wireframe: true }) ] );			 
+				cylinder.position.x = 0;
+				cylinder.position.y = (-1 * option_SolarSystem3DSizeY);
+				cylinder.position.z = 0;
+				cylinder.rotation.x = (Math.PI / 2);
+				scene.addObject(cylinder);
 
-
+			}			
+			function init_grid() {
 				// Grid
 				var geometry = new THREE.Geometry();
 				geometry.vertices.push( new THREE.Vertex( new THREE.Vector3( -1 * option_SolarSystem3DSizeXZ, 0, 0 ) ) );
@@ -185,6 +225,7 @@
 				var mesh = new THREE.Mesh( new Sphere( Celestial.planetInfo(planetid,'pixelwidth'),option_SphereQuality,option_SphereQuality ),
 					   new THREE.MeshBasicMaterial( { map: ImageUtils.loadTexture( Celestial.planetInfo(planetid,'texture')) } ) );
 				mesh.overdraw = true;
+				//TODO: Use PosRot
 				mesh.position = Celestial.planetInfo(planetid,'position');
 				mesh.rotation = Celestial.planetInfo(planetid,'rotation');
 				mesh.name = Celestial.planetInfo(planetid,'name');
@@ -340,7 +381,7 @@
 					moveForward = false; moveBackward = false;
 				}
 
-				camera.position.x += ( mouseX - camera.position.x ) * 0.05;
+				camera.position.x += (   mouseX - camera.position.x ) * 0.05;
 				camera.position.y += ( - mouseY - camera.position.y ) * 0.05;
 
 				advanceAndPosition();
