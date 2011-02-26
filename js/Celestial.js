@@ -9,7 +9,7 @@ var Celestial = {
 	last_displayed_epoch_time: 0,
 	time_display_method: 1,
 	spacingMethod: 'realistic', //'evenly', 'realistic', 'artistic'
-	sizingMethod: 'artistic', //'equal', 'realistic', 'artistic'
+	sizingMethod: 'realistic', //'equal', 'realistic', 'artistic'
 	pixelSizeXZ: 250,
 	pixelSizeY: 200,
 	furthest_planet:-1,

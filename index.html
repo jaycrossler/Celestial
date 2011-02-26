@@ -88,18 +88,6 @@
 //				materials.push( new THREE.MeshBasicMaterial( { color: 0x665500, blending: THREE.AdditiveBlending } ) );
 
 			}
-			function loadTexture( path ) {
-				var texture = new THREE.Texture( texture_placeholder ),
-					material = new THREE.MeshBasicMaterial( { map: texture } ),
-					image = new Image();
-				image.onload = function () {
-					texture.needsUpdate = true;
-					material.map.image = this;
-//					render();
-				};
-				image.src = path;
-				return material;
-			}			
 			function init_sky() {
 				texture_placeholder = document.createElement( 'canvas' );
 				texture_placeholder.width = 512;
@@ -221,6 +209,19 @@
 				stats.domElement.style.top = '0px';
 				container.appendChild( stats.domElement );
 			}					
+
+			function loadTexture( path ) {
+				var texture = new THREE.Texture( texture_placeholder ),
+					material = new THREE.MeshBasicMaterial( { map: texture } ),
+					image = new Image();
+				image.onload = function () {
+					texture.needsUpdate = true;
+					material.map.image = this;
+//					render();
+				};
+				image.src = path;
+				return material;
+			}			
 			function create_planet(planetid) {
 				var mesh = new THREE.Mesh( new Sphere( Celestial.planetInfo(planetid,'pixelwidth'),option_SphereQuality,option_SphereQuality ),
 					   new THREE.MeshBasicMaterial( { map: ImageUtils.loadTexture( Celestial.planetInfo(planetid,'texture')) } ) );
@@ -281,14 +282,19 @@
 				}		
 
 			}
-			
-
-			
 			function planetWasClicked(planetid) {
 				var P = Celestial.Planets[planetid];
 				console.log("Planet "+P.planetName +" was clicked");
 			}
-
+			function advanceAndPosition() {
+				Celestial.addMinute();
+				for ( var i = 0, l = planetmeshlist.length; i < l; i++ ) {
+					var posrot = Celestial.planetInfo(i,'posrot');
+					planetmeshlist[i].position = posrot.position;//Celestial.planetInfo(i,'position');
+					planetmeshlist[i].rotation = posrot.rotation;//Celestial.planetInfo(i,'rotation');
+				}
+				timedisplay.innerHTML = Celestial.displayTime();			
+			}
 
 			function onDocumentMouseMove( event ) {
 				if (option_PanScreenWithMouse) {
@@ -304,13 +310,18 @@
 				projector.unprojectVector( vector, camera );
 				var ray = new THREE.Ray( camera.position, vector.subSelf( camera.position ).normalize() );
 				var intersects = ray.intersectScene( scene );
-
+				
+//TODO: When planets are resized, they no longer are selectable in the scene
 				var planetid;
 				if ( intersects.length > 0 ) {
-					planetid = intersects[ 0 ].object.planetid;
+					//Test to make sure the last item isn't a skybox
+					for ( var l = intersects.length, i = l-1; i >= 0; i-- ) {
+						planetid = intersects[ i ].object.planetid;
+						if (typeof(planetid) == "number") break; //We found a valid planet
+					}
 				}
 				
-				if (planetid) {
+				if (typeof(planetid) == "number") {
 					planetWasClicked(planetid);
 				} else {
 					//Planet not clicked, handle move instead
@@ -363,19 +374,14 @@
 			}
 
 
-			function advanceAndPosition() {
-				Celestial.addMinute();
-				for ( var i = 0, l = planetmeshlist.length; i < l; i++ ) {
-					var posrot = Celestial.planetInfo(i,'posrot');
-					planetmeshlist[i].position = posrot.position;//Celestial.planetInfo(i,'position');
-					planetmeshlist[i].rotation = posrot.rotation;//Celestial.planetInfo(i,'rotation');
-				}
-				timedisplay.innerHTML = Celestial.displayTime();			
-			}
 
 			function loop() {
 
-				if ( moveForward )  { camera.translateZ( - 10 ); mouseY+=2;}
+				if ( moveForward )  {
+					if (camera.position.z > 20) {
+						camera.translateZ( - 10 ); mouseY+=2;
+					}
+				}
 				if ( moveBackward ) { camera.translateZ( 10 ); mouseY-=2;}
 				if (moveShouldStop) { // stop moving if it was from scrolling
 					moveForward = false; moveBackward = false;
