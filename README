@@ -1,0 +1,2 @@
+// Javascript Spatial mechanics engine for calculating helocentric (x,y,z) planetary coordinates
+// See index.html for working example of integration with Three.js graphics engine (works best in Chrome)
