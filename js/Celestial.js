@@ -23,6 +23,7 @@ var Celestial = {
 		var rot = null;
 		if (!scale_up) scale_up = 1; //if 2, then don't scale, if 3 then use base realistic
 		var spacingMethod = (scale_up == 3) ? 'realistic' : Celestial.spacingMethod;
+		var updatecurrent = (epoch) ? false : true;  //If a different epoch is passed in, don't save
 		
  		switch(spacingMethod) {
 		case 'evenly':
@@ -179,9 +180,10 @@ if (loginfo>0)	console.log("Planet:" + planetid + " x:"+pos.x+" z:"+pos.z + " SQ
 		default:
 		  	break;
 		}
-		Celestial.Planets[planetid].position = pos;
-		Celestial.Planets[planetid].rotation = rot;
-		
+		if (updatecurrent) {
+			Celestial.Planets[planetid].position = pos;
+			Celestial.Planets[planetid].rotation = rot;
+		}		
 		return {position: pos, rotation: rot};
 	},
 	true_anomaly: function ( mp, ep) {
@@ -249,7 +251,7 @@ if (loginfo>0)	console.log("Planet:" + planetid + " x:"+pos.x+" z:"+pos.z + " SQ
 		  return Celestial.planetLocation(planetid, epoch);
 		  break;
 		case 'position':
-		  return {x:(planetid * (Celestial.pixelSizeXZ / Celestial.Planets.length)),y:0, z:0};
+		  return {x:(planetid * (Celestial.pixelSizeXZ / Celestial.Planets.length)),y:0, z:0}; //TODO, use PlanetLocation
 		  break;
 		case 'rotation':
 		  return {x:Math.random() * 200 - 100, y:Math.random() * 200 - 100, z:Math.random() * 200 - 100};
