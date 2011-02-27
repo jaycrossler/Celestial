@@ -39,7 +39,7 @@
 	Spacing:<span id="click1" onclick="clickit(1)">Evenly</span>::<span id="click2" onclick="clickit(2)">Realistic</span>::<span id="click3" onclick="clickit(3)">Artistic</span>
 	Sizing:<span id="click4" onclick="clickit(4)">Equal</span>::<span id="click5" onclick="clickit(5)">Realistic</span>::<span id="click6" onclick="clickit(6)">Artistic</span><br/>
 	View:<span id="click7" onclick="clickit(7)">Panning(p)</span>::<span id="click8" onclick="clickit(8)">Log(l)</span>::<span id="click9" onclick="clickit(9)">Inner</span>
-	<br/>	<span id="timedisplay" style="color:white"></span></div>
+	<br/>	<span id="timedisplay" style="color:white" onclick="clickit(10)"></span></div>
 
 
 		<script type="text/javascript">
@@ -278,7 +278,14 @@
 				  camera.position.z = 60;
 				  mouseY = -13;
 				  mouseX = -1;
-				  break;				  				  
+				  break;
+				case 10:
+				  if (Celestial.time_display_method == 'yearday') {
+				  	Celestial.time_display_method = 'date';
+				  } else {
+				    Celestial.time_display_method = 'yearday';
+				  }
+				  break;
 				}		
 
 			}
@@ -287,7 +294,7 @@
 				console.log("Planet "+P.planetName +" was clicked");
 			}
 			function advanceAndPosition() {
-				Celestial.addMinute();
+				Celestial.addDay();
 				for ( var i = 0, l = planetmeshlist.length; i < l; i++ ) {
 					var posrot = Celestial.planetInfo(i,'posrot');
 					planetmeshlist[i].position = posrot.position;//Celestial.planetInfo(i,'position');

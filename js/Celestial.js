@@ -7,7 +7,7 @@ var Celestial = {
 	epoch_timestep: 1,
 	last_queried_epoch_time: 0,
 	last_displayed_epoch_time: 0,
-	time_display_method: 1,
+	time_display_method: 'yearday', //'yearday', 'date'
 	spacingMethod: 'realistic', //'evenly', 'realistic', 'artistic'
 	sizingMethod: 'realistic', //'equal', 'realistic', 'artistic'
 	pixelSizeXZ: 250,
@@ -16,11 +16,9 @@ var Celestial = {
 	furthest_planet_posn:null,
 	furthest_planet_distkm:-1,
 	scaler_axes:null,
-	deg_to_radian_mult: 0.01745329519944,  //PI/180
 	Planets: [],
 	
 	planetLocation: function(planetid, epoch, scale_up) {
-
 		var pos = null;
 		var rot = null;
 		if (!scale_up) scale_up = 1; //if 2, then don't scale, if 3 then use base realistic
@@ -62,15 +60,21 @@ if (loginfo>1) console.log("Planet:" + planetid + " A%" +Math.round(100*per_actu
 			
 			switch (P.orbit_calc_method) {
 			case 'major_planet':
-				var ap = P.a_semimajor_axis + (P.a_per_cy*time);
-				var ep = P.e_eccentricity + (P.e_per_cy*time);
-				var ip = P.i_inclination + (P.i_per_cy*time/3600);
-				var op = P.O_ecliptic_long + (P.O_per_cy*time/3600);
-				var wp = P.w_perihelion + (P.w_per_cy*time/3600);
-	//			%lp = P.L_mean_longitude + (P.L_per_cy*time/3600);
-				var lp = Celestial.mod2pi((P.L_mean_longitude + (P.L_per_cy*time/3600))*Celestial.deg_to_radian_mult);		
+				//Derived from mysite.verizon.net/res148h4j/javascript/script_planet_orbits.html
+
+				var DEGS = 180/Math.PI;      // convert radians to degrees
+				var RADS = Math.PI/180;      // convert degrees to radians
+				var EPS  = 1.0e-12;          // machine error constant
+				var cy = time/36525;         // centuries since J2000
+				
+				var ap = P.a_semimajor_axis + (P.a_per_cy*cy);
+				var ep = P.e_eccentricity + (P.e_per_cy*cy);
+				var ip = P.i_inclination + (P.i_per_cy*cy/3600)*RADS;
+				var op = P.O_ecliptic_long + (P.O_per_cy*cy/3600)*RADS;
+				var wp = P.w_perihelion + (P.w_per_cy*cy/3600)*RADS;
+				var lp = Celestial.mod2pi((P.L_mean_longitude + P.L_per_cy*cy/3600)*RADS);		
 		
-				// position of planetid in its orbit
+				// position of planet in its orbit
 				var mp = Celestial.mod2pi(lp - wp);
 				var vp = Celestial.true_anomaly(mp, ep);  //TODO: if ep >1, then error
 				var rp = ap*(1 - ep*ep) / (1 + ep*Math.cos(vp));
@@ -80,13 +84,13 @@ if (loginfo>1) console.log("Planet:" + planetid + " A%" +Math.round(100*per_actu
 				var dz = rp*(Math.sin(op)*Math.cos(vp + wp - op) + Math.cos(op)*Math.sin(vp + wp - op)*Math.cos(ip));
 				var dy = rp*(Math.sin(vp + wp - op)*Math.sin(ip));
 
-				var distscaler = (scale_up == 1) ? Celestial.systemScaler() : {xz: 1, y:1};
+				var distscaler = (scale_up == 1) ? Celestial.systemScaler() : {xz: 1, y:1};  //Scale the distances if asked to
 				pos = {x: distscaler.xz*dx, y: distscaler.y*dy, z: distscaler.xz*dz};
 if (loginfo>0)	console.log("Planet:" + planetid + " x:"+pos.x+" z:"+pos.z + " SQ:"+(Math.sqrt(pos.x * pos.x)+Math.sqrt(pos.y * pos.y)));
 
 				// Find the remainder when the current epoch time is modded by the rotational period of the planetid
 				var daylength_in_centuries = 0.0000273785 * P.rotation_sidereal_in_days;
-				var dayrem = Celestial.fmod(time, Celestial.daylength_in_centuries);
+				var dayrem = Celestial.fmod(time, daylength_in_centuries);
 				var daypercent = dayrem / daylength_in_centuries;
 			
 				//echo("Day is" SPC %daypercent SPC "% of" SPC %daylength_in_centuries SPC "lengthed days");
@@ -96,8 +100,8 @@ if (loginfo>0)	console.log("Planet:" + planetid + " x:"+pos.x+" z:"+pos.z + " SQ
 
 				//Rotate the planetid on the correct planetary axis
 				//rot = RotateVectorOnZX(%zr, %xr);
-				rot = {x:0, y:P.rotation.y += .004 || 0, z:0};
-				//TODO: Fix Rotation
+				rot = {x:0, y:P.rotation.y += .004 || 0.004, z:0};
+	//TODO: Fix Rotation
 				break;
 			case 'luna':
 // 				%parentid = Orrery_GetPlanetIDByName(%orreryHandler, %p.satelliteOf);
@@ -328,16 +332,17 @@ if (loginfo>0)	console.log("Planet:" + planetid + " x:"+pos.x+" z:"+pos.z + " SQ
 // 			//Hasn't changed, show the stored version
 // 			return Celestial.last_displayed_epoch_time;
 // 		}
- 		if (format) Celestial.time_display_method = format;
+ 		if (!format) format = Celestial.time_display_method;
 		var rv;
 		
-		switch(Celestial.time_display_method) {
-		case 1:
-			var yr = Math.floor(Celestial.current_epoch_time);
-			var day = Math.floor((Celestial.current_epoch_time-yr)*365.25);
-		  	rv = "Epoch Year:" + yr + " Day:" + day + " : "+Celestial.current_epoch_time.toFixed(6);
+		switch(format) {
+		case 'yearday':
+			var yr = Math.floor(Celestial.current_epoch_time / 365.25);
+			var day = Math.floor(Celestial.current_epoch_time-(yr * 365.25));
+			var eday = Celestial.current_epoch_time.toFixed(3);
+		  	rv = "Epoch Day "+ eday +" (from J2000) Year:" +  + yr + " Day:" + day;
 		  	break;
-		default:
+		case 'date':
 		//TODO: Time doesn't seem to be working
 			var datetime = new Date(new Date(2000,0,0,11,57,27).getTime() + (Celestial.current_epoch_time *24 * 60 *60 * 1000 ));
 			var yyyy = datetime.getFullYear();
