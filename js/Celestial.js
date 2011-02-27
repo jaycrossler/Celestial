@@ -239,6 +239,9 @@ if (loginfo>0)	console.log("Planet:" + planetid + " x:"+pos.x+" z:"+pos.z + " SQ
 	},
 	planetInfo: function(planetid, infotype, epoch) {
 		switch(infotype) {
+		case 'type':
+		  return Celestial.Planets[planetid].orbit_calc_method ;
+		  break;
 		case 'texture':
 		  return (Celestial.Planets[planetid].texture) ? Celestial.Planets[planetid].texture : 'textures/'+Celestial.Planets[planetid].planetName+'_surface.jpg';
 		  break;
@@ -306,8 +309,16 @@ if (loginfo>0)	console.log("Planet:" + planetid + " x:"+pos.x+" z:"+pos.z + " SQ
 		Celestial.current_epoch_time++;
 		Celestial.last_queried_epoch_time=0;
 	},
+	addHour: function () {
+		Celestial.current_epoch_time+=0.041666667;
+		Celestial.last_queried_epoch_time=0;
+	},	
 	addMinute: function () {
-		Celestial.current_epoch_time+=0.00000694;
+		Celestial.current_epoch_time+=0.000694444;
+		Celestial.last_queried_epoch_time=0;
+	},	
+	addSecond: function () {
+		Celestial.current_epoch_time+=0.000011574;
 		Celestial.last_queried_epoch_time=0;
 	},	
 	convertTimeToEpoch: function (year, month, day, hour, mins, secs) {
@@ -340,7 +351,7 @@ if (loginfo>0)	console.log("Planet:" + planetid + " x:"+pos.x+" z:"+pos.z + " SQ
 			var yr = Math.floor(Celestial.current_epoch_time / 365.25);
 			var day = Math.floor(Celestial.current_epoch_time-(yr * 365.25));
 			var eday = Celestial.current_epoch_time.toFixed(3);
-		  	rv = "Epoch Day "+ eday +" (from J2000) Year:" +  + yr + " Day:" + day;
+		  	rv = "Epoch Day "+ eday +" (from J2000) Year:+" + yr + " Day:" + day;
 		  	break;
 		case 'date':
 		//TODO: Time doesn't seem to be working
