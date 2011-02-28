@@ -3,6 +3,14 @@
 	<head>
 		<title>Celestial</title>
 		<meta charset="utf-8">
+		<meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black" />
+		<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=utf-8" /> 
+		<meta name="description" content="HTML5 Canvas Celestial System using Three.js - by Jay Crossler" /> 
+		<meta name="keywords" content="html5, canvas, maptiles, sprites, spritesheets" /> 
+		<meta name="robots" content="index, follow" /> 
+
 		<style type="text/css">
 			body {
 				color: #808080;
@@ -12,6 +20,8 @@
 
 				background-color: #000000;
 				margin: 0px;
+				padding:0;
+				height:100%;
 				overflow: hidden;
 			}
 
@@ -37,21 +47,29 @@
 				opacity: 0.5;
 			}
 
+			//Handles mouse bouncing and other iPad-specific issues
+			* {
+			  -webkit-touch-callout: none;
+			  -webkit-text-size-adjust: none;
+			  -webkit-tap-highlight-color: rgba(0,0,0,0);
+			  -webkit-user-select: none;
+			}
+
 		</style>
 		<script type="text/javascript" src="js/Stats.js"></script>
 		<script type="text/javascript" src="js/Three.js"></script>
 		<script type="text/javascript" src="js/Celestial.js"></script>
 		<script type="text/javascript" src="planets.json"></script>
 	</head>
-	<body>
+	<body onload="preloader()">
 
-		<div id="container"></div> 
+		<div id="container"><br/><h1>Loading</h1></div> 
 		<div id="info">
-			Spacing:<span id="click1" onclick="clickit(1)">Evenly</span>::<span id="click2" onclick="clickit(2)">Realistic</span>::<span id="click3" onclick="clickit(3)">Artistic</span>
+<!--			Spacing:<span id="click1" onclick="clickit(1)">Evenly</span>::<span id="click2" onclick="clickit(2)">Realistic</span>::<span id="click3" onclick="clickit(3)">Artistic</span>
 			Sizing:<span id="click4" onclick="clickit(4)">Equal</span>::<span id="click5" onclick="clickit(5)">Realistic</span>::<span id="click6" onclick="clickit(6)">Artistic</span><br/>
-			View:<span id="click7" onclick="clickit(7)">Panning(p)</span>::<span id="click8" onclick="clickit(8)">Log(l)</span>::<span id="click9" onclick="clickit(9)">Inner</span>
-			<br/>	<span id="timedisplay" style="color:white" onclick="clickit(10)"></span>
+-->			View:<span id="click7" onclick="clickit(7)">Panning(p)</span>::<span id="click8" onclick="clickit(8)">Log(l)</span>::<span id="click9" onclick="clickit(9)">Inner</span>
 			[Adv <span onclick="clickit(11)">D</span>:<span onclick="clickit(12)">H</span>:<span onclick="clickit(13)">M</span>:<span onclick="clickit(14)">S</span> per frame]
+			<br/><span id="timedisplay" style="color:white" onclick="clickit(10)"></span>
 		</div>
 
 	<div id="planetinfo"></div>
@@ -63,7 +81,8 @@
 				option_ZoomOnClick = false, //Zoom ahead when the mouse is clicked
 				option_SolarSystem3DSizeXZ = 400, // how many "3d" pixels to use in the system length, width
 				option_SolarSystem3DSizeY = 250, // how many "3d" pixels to use in the system's height
-				option_TimeAdvanceType = 'h'; // 'h','m','d','s', rate; how often to advance per second
+				option_TimeAdvanceType = 'h', // 'h','m','d','s', rate; how often to advance per second
+				option_TargetFPS = 30; // Goal for # of frames per second
 			
 			var planetmeshlist = [];
 			
@@ -77,8 +96,44 @@
 			var windowHalfY = window.innerHeight / 2;
 
 
-			init();
-			setInterval( loop, 1000 / 60 );
+
+			function preloader() {
+				document.getElementById('container').innerHTML="<br/><br/><br/><br/><h1>Loading Images</h1>";
+
+				 // create object
+				 imageObj = new Image();
+			
+				 // set image list
+				 images = new Array();
+				 images[0]="textures/Sol_surface.jpg"
+				 images[1]="textures/Mercury_surface.jpg"
+				 images[2]="textures/Venus_surface.jpg"
+				 images[3]="textures/Earth_surface.jpg"
+				 images[4]="textures/Mars_surface.jpg"
+				 images[5]="textures/Jupiter_surface.jpg"
+				 images[6]="textures/Saturn_surface.jpg"
+				 images[7]="textures/Uranus_surface.jpg"
+				 images[8]="textures/Neptune_surface.jpg"
+				 images[9]="textures/Pluto_surface.jpg"
+				 images[10]="textures/skybox/hot_nebula_90.jpg"
+				 images[11]="textures/skybox/hot_nebula_270.jpg"
+				 images[12]="textures/skybox/hot_nebula_top.jpg"
+				 images[13]="textures/skybox/hot_nebula_bottom.jpg"
+				 images[14]="textures/skybox/hot_nebula_0.jpg"
+				 images[15]="textures/skybox/hot_nebula_180.jpg"
+			
+				 // start preloading
+				 for(var i=0; i<images.length; i++) 
+				 {
+					  imageObj.src=images[i];
+				 }
+				 
+				//Start the simulation
+				document.getElementById('container').innerHTML="";
+				init();
+				setInterval( loop, 1000 / option_TargetFPS );
+			} 
+
 
 			function init() {
 				container = document.getElementById( 'container'  );
@@ -103,7 +158,9 @@
 // 		particle = new THREE.Particle( new THREE.ParticleBasicMaterial( { map: ImageUtils.loadTexture( 'textures/sun.png' ), blending: THREE.AdditiveBlending } ) );
 // 		scene.addObject( particle );
 
-
+		particle = new THREE.Particle( new THREE.ParticleBasicMaterial( { map: ImageUtils.loadTexture( 'textures/sun.png' ), blending: THREE.AdditiveBlending } ) );
+		scene.addObject( particle );
+		
 				init_sky();
 				//init_cylinder();
 				init_grid();
@@ -228,7 +285,7 @@
 						line = new THREE.Line( geometry, material );
 						scene.addObject( line );
 
-					}						
+					}				
 					planetmeshlist.push( mesh );
 					scene.addObject( mesh );
 
@@ -245,20 +302,77 @@
 				document.addEventListener( 'mousedown', onDocumentMouseDown, false );
 				document.addEventListener( 'mouseup', onDocumentMouseUp, false );
 				document.addEventListener( 'contextmenu', function ( event ) { event.preventDefault(); }, false ); //prevent right click menu
-		        document.addEventListener( 'DOMMouseScroll', onDocumentMouseScroll, false);
-		        document.addEventListener( 'mousewheel', onDocumentMouseScroll, false);
-		        document.addEventListener( 'keydown', onDocumentKeyDown, false);
+				document.addEventListener( 'DOMMouseScroll', onDocumentMouseScroll, false);
+				document.addEventListener( 'mousewheel', onDocumentMouseScroll, false);
+				document.addEventListener( 'keydown', onDocumentKeyDown, false);
+				container.addEventListener('touchstart', touchHandler, false);	
+				container.addEventListener('touchmove', touchHandler, false);	
+				container.addEventListener('touchend', touchHandler, false);	
+				container.addEventListener("touchcancel", touchHandler, true); 
+				window.addEventListener( 'resize', onWindowResize, false );
 
 				projector = new THREE.Projector();
 
 			}
-			function init_renderer() {
-				renderer = option_RenderWebGL ? new THREE.WebGLRenderer() : new THREE.CanvasRenderer();
-				//renderer = new THREE.WebGLRenderer();
-				//renderer = new THREE.CanvasRenderer();
-				renderer.setSize( window.innerWidth, window.innerHeight );
+			//----------------
+			//From: http://ross.posterous.com/2008/08/19/iphone-touch-events-in-javascript
+			//Intercepts iOs and Android touch events, turns into drag events
+			function touchHandler(event)
+			{
+				var touches = event.changedTouches,
+					first = touches[0],
+					type = "";
+					 switch(event.type)
+				{
+					case "touchstart": type="mousedown"; break;
+					case "touchmove":  type="mousemove"; break;        
+					case "touchend":   type="mouseup"; break;
+					default: return;
+				}
+			
+				//initMouseEvent(type, canBubble, cancelable, view, clickCount, 
+				//           screenX, screenY, clientX, clientY, ctrlKey, 
+				//           altKey, shiftKey, metaKey, button, relatedTarget);
+				
+				var simulatedEvent = document.createEvent("MouseEvent");
+				simulatedEvent.initMouseEvent(type, true, true, window, 1, 
+										  first.screenX, first.screenY, 
+										  first.clientX, first.clientY, false, 
+										  false, false, false, 0/*left*/, null);
+			
+				first.target.dispatchEvent(simulatedEvent);
+				event.preventDefault();
+			}
 
-				container.appendChild( renderer.domElement );
+			function init_renderer() {
+				var renderer_created = true;
+				if (option_RenderWebGL) {
+					try {
+						renderer = new THREE.WebGLRenderer();
+						console.log("WebGL Renderer initialized");
+						renderer_created = true;
+ 					} catch (err) {
+ 						console.log("WebGL Rendering failed");
+ 						option_RenderWebGL = false;
+ 					}
+ 				}
+ 				if (!option_RenderWebGL) {
+ 					try {
+ 						renderer = new THREE.CanvasRenderer();
+ 						console.log("Canvas Renderer initialized");
+ 						option_PanScreenWithMouse = false;
+ //						option_TargetFPS = 1;
+ 					} catch (err) {
+ 						renderer_created = false;
+ 					}
+ 				}
+ 				if (renderer_created) {
+					renderer.setSize( window.innerWidth, window.innerHeight );
+					container.appendChild( renderer.domElement );
+ 				} else {
+ 					container.innerHTML = "<br/><br/><br/><h1>3D Rendering could not load</h1>";
+ 					console.log("FAIL! No renderer able to load");
+ 				}
 			}
 			function init_stats() {
 				stats = new Stats();
@@ -268,6 +382,7 @@
 			}					
 
 			function loadTexture( path ) {
+			//TODO: Use the ImageUtils one correctly
 				var texture = new THREE.Texture( texture_placeholder ),
 					material = new THREE.MeshBasicMaterial( { map: texture } ),
 					image = new Image();
@@ -471,6 +586,18 @@
 				if ((code == 76) || (code == 108)) clickit(8); //l or L
 				if ((code == 43) || (code == 187)) {moveForward = true;moveShouldStop = true;}//+ or =
 				if ((code == 45) || (code == 189)) {moveBackward = true;moveShouldStop = true;} //- or _
+			}
+			function onWindowResize( event ) {
+			
+				var width = window.innerWidth, height = window.innerHeight;
+			
+				camera.aspect = width / height;
+				camera.updateProjectionMatrix();
+			
+				renderer.setSize( width, height );
+				renderer.domElement.style.width = window.innerWidth + 'px';
+				renderer.domElement.style.height = window.innerHeight + 'px';
+			
 			}
 
 			function loop() {

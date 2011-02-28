@@ -351,9 +351,10 @@ if (loginfo>0)	console.log("Planet:" + planetid + " x:"+pos.x+" z:"+pos.z + " SQ
 		switch(format) {
 		case 'yearday':
 			var yr = Math.floor(Celestial.current_epoch_time / 365.25);
-			var day = Math.floor(Celestial.current_epoch_time-(yr * 365.25));
+			var day = Math.floor(.5 + Celestial.current_epoch_time-(yr * 365.25));
+			yr+=2000;
 			var eday = Celestial.current_epoch_time.toFixed(3);
-		  	rv = "Epoch Day "+ eday +" (from J2000) Year:+" + yr + " Day:" + day;
+		  	rv = "Epoch Day "+ eday +"  Year:" + yr + " Day:" + day;
 		  	break;
 		case 'date':
 		//TODO: Time doesn't seem to be working
