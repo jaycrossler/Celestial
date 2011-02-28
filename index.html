@@ -310,10 +310,38 @@
 				container.addEventListener('touchend', touchHandler, false);	
 				container.addEventListener("touchcancel", touchHandler, true); 
 				window.addEventListener( 'resize', onWindowResize, false );
+//				window.addEventListener( 'orientationchange', onWindowResize, false);
+
+    container.addEventListener ('gesturestart', gStart, false);
+    container.addEventListener ('gesturechange', gChange, false);
+    container.addEventListener ('gestureend', gEnd, false)
 
 				projector = new THREE.Projector();
 
 			}
+
+function gStart (e) {
+    e.preventDefault ();
+}
+function gChange (e) {
+    var target = e.target;
+    e.preventDefault ();
+
+	if (e.scale > 0) {
+		moveForward = true;
+	} else {
+		moveBackward = true;
+	}
+	moveShouldStop = true;  
+//        'rotate(' + (target.gStartRotation + e.rotation) + 'deg)';
+}
+function gEnd (e) {
+    e.preventDefault ();
+}
+			
+			
+			
+			
 			//----------------
 			//From: http://ross.posterous.com/2008/08/19/iphone-touch-events-in-javascript
 			//Intercepts iOs and Android touch events, turns into drag events
