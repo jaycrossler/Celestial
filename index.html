@@ -81,7 +81,7 @@
 				option_ZoomOnClick = false, //Zoom ahead when the mouse is clicked
 				option_SolarSystem3DSizeXZ = 400, // how many "3d" pixels to use in the system length, width
 				option_SolarSystem3DSizeY = 250, // how many "3d" pixels to use in the system's height
-				option_TimeAdvanceType = 'h', // 'h','m','d','s', rate; how often to advance per second
+				option_TimeAdvanceType = 'd', // 'h','m','d','s', rate; how often to advance per second
 				option_TargetFPS = 30; // Goal for # of frames per second
 			
 			var planetmeshlist = [];
@@ -285,7 +285,7 @@
 						line = new THREE.Line( geometry, material );
 						scene.addObject( line );
 
-					}				
+					}
 					planetmeshlist.push( mesh );
 					scene.addObject( mesh );
 
@@ -503,6 +503,7 @@ function gEnd (e) {
 			}
 			function planetWasClicked(planetid) {
 				var P = Celestial.Planets[planetid];
+				camera.target = planetmeshlist[planetid];
 				console.log("Planet "+P.planetName +" was clicked");
 				
 				var strP = "<div id='planetname'>"+P.planetName+"</div>";
@@ -530,6 +531,8 @@ function gEnd (e) {
 				for ( var i = 0, l = planetmeshlist.length; i < l; i++ ) {
 					var posrot = Celestial.planetInfo(i,'posrot');
 					planetmeshlist[i].position = posrot.position;//Celestial.planetInfo(i,'position');
+					planetmeshlist[i].position.subSelf = function () {}; //Added because Celestial doesn't return a three.js position object
+
 					planetmeshlist[i].rotation = posrot.rotation;//Celestial.planetInfo(i,'rotation');
 				}
 				timedisplay.innerHTML = Celestial.displayTime();			

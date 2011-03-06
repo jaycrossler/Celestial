@@ -1,6 +1,25 @@
 // Celestial.js r1 - Jay Crossler - CC BY/3.0 license
 			var multReal = 1, multCos = 0, multEven = 4;
 
+/*TODO:
+* fix alternating orbits
+* jupiter too inclined
+- refactor
+- skybox loading late
+- orbit point return function
+- star calculator
+- planets as hierarchy
+- names above planets
+- real sizing
+
+- m cw, v ccw, e cw, m ccw, j cw
+- svg viewer
+- seperate 3celestial
+- move to threading
+- point at
+- larger pointat area?
+
+*/
 var Celestial = {
 	current_epoch_time: 0,
 	parent_planet:0,
@@ -11,7 +30,7 @@ var Celestial = {
 	spacingMethod: 'realistic', //'evenly', 'realistic', 'artistic'
 	sizingMethod: 'realistic', //'equal', 'realistic', 'artistic'
 	pixelSizeXZ: 250,
-	pixelSizeY: 200,
+	pixelSizeY: 250,
 	furthest_planet:-1,
 	furthest_planet_posn:null,
 	furthest_planet_distkm:-1,
@@ -70,17 +89,17 @@ if (loginfo>1) console.log("Planet:" + planetid + " A%" +Math.round(100*per_actu
 				
 				var ap = P.a_semimajor_axis + (P.a_per_cy*cy);
 				var ep = P.e_eccentricity + (P.e_per_cy*cy);
-				var ip = P.i_inclination + (P.i_per_cy*cy/3600)*RADS;
-				var op = P.O_ecliptic_long + (P.O_per_cy*cy/3600)*RADS;
-				var wp = P.w_perihelion + (P.w_per_cy*cy/3600)*RADS;
-				var lp = Celestial.mod2pi((P.L_mean_longitude + P.L_per_cy*cy/3600)*RADS);		
+				var ip = (P.i_inclination + (P.i_per_cy*cy/3600))*RADS;
+				var op = (P.O_ecliptic_long + (P.O_per_cy*cy/3600))*RADS;
+				var wp = (P.w_perihelion + (P.w_per_cy*cy/3600))*RADS;
+				var lp = Celestial.mod2pi((P.L_mean_longitude + (P.L_per_cy*cy/3600))*RADS);		
 		
 				// position of planet in its orbit
 				var mp = Celestial.mod2pi(lp - wp);
 				var vp = Celestial.true_anomaly(mp, ep);  //TODO: if ep >1, then error
 				var rp = ap*(1 - ep*ep) / (1 + ep*Math.cos(vp));
 				
-				// heliocentric rectangular coordinates of planetid
+				// heliocentric rectangular coordinates of planet
 				var dx = rp*(Math.cos(op)*Math.cos(vp + wp - op) - Math.sin(op)*Math.sin(vp + wp - op)*Math.cos(ip));
 				var dz = rp*(Math.sin(op)*Math.cos(vp + wp - op) + Math.cos(op)*Math.sin(vp + wp - op)*Math.cos(ip));
 				var dy = rp*(Math.sin(vp + wp - op)*Math.sin(ip));
