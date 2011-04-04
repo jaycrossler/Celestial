@@ -7,8 +7,8 @@
 		<meta name="apple-mobile-web-app-capable" content="yes" />
 		<meta name="apple-mobile-web-app-status-bar-style" content="black" />
 		<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=utf-8" /> 
-		<meta name="description" content="HTML5 Canvas Celestial System using Three.js - by Jay Crossler" /> 
-		<meta name="keywords" content="html5, canvas, maptiles, sprites, spritesheets" /> 
+		<meta name="description" content="HTML5 Canvas rendering using Three.js - by Jay Crossler" /> 
+		<meta name="keywords" content="html5, canvas, ipad, three.js, ios, android, gestures" /> 
 		<meta name="robots" content="index, follow" /> 
 
 		<style type="text/css">
@@ -36,7 +36,7 @@
 				cursor: pointer; cursor: hand;
 			}
 			
-			#planetinfo {
+			#div_planetinfo {
 				position: absolute;
 				width: 150px; height: 150px;
 				background-color: #200;
@@ -54,10 +54,11 @@
 			  -webkit-tap-highlight-color: rgba(0,0,0,0);
 			  -webkit-user-select: none;
 			}
-
 		</style>
 		<script type="text/javascript" src="js/Stats.js"></script>
 		<script type="text/javascript" src="js/Three.js"></script>
+		<script type="text/javascript" src="js/Ray.js"></script>
+		<script type="text/javascript" src="js/Color.js"></script>
 		<script type="text/javascript" src="js/CameraControl.js"></script>
 		<script type="text/javascript" src="js/RequestAnimationFrame.js"></script>		
 		<script type="text/javascript" src="js/Celestial.js"></script>
@@ -65,197 +66,178 @@
 	</head>
 	<body onload="preloader()">
 
-		<div id="container"><br/><h1>Loading</h1></div> 
+		<div id="container"></div> 
 		<div id="info">
-<!--			Spacing:<span id="click1" onclick="clickit(1)">Evenly</span>::<span id="click2" onclick="clickit(2)">Realistic</span>::<span id="click3" onclick="clickit(3)">Artistic</span>
-			Sizing:<span id="click4" onclick="clickit(4)">Equal</span>::<span id="click5" onclick="clickit(5)">Realistic</span>::<span id="click6" onclick="clickit(6)">Artistic</span><br/>
--->			View:<span id="click7" onclick="clickit(7)">Panning(p)</span>::<span id="click8" onclick="clickit(8)">Log(l)</span>::<span id="click9" onclick="clickit(9)">Inner</span>
+			<a href="../StarPad/index.html">STARS</a>
 			[Adv <span onclick="clickit(11)">D</span>:<span onclick="clickit(12)">H</span>:<span onclick="clickit(13)">M</span>:<span onclick="clickit(14)">S</span> per frame]
-			<br/><span id="timedisplay" style="color:white" onclick="clickit(10)"></span>
+			<span id="timedisplay" style="color:white" onclick="clickit(10)"></span>
 		</div>
-
-	<div id="planetinfo"></div>
+		<div id="div_info"></div>
+		<div id="div_planetinfo">
+			<a href="?renderer=webgl">WEBGL</a>
+			<a href="?renderer=canvas">CANVAS</a>
+			<a href="?renderer=svg">SVG</a> <!-- Particles not working for SVG -->
+		</div>
 
 		<script type="text/javascript">
 			var option_PanScreenWithMouse = true, //when mouse moves, use it to pan camera
-				option_RenderWebGL = true, //Use the 3D graphics acceleration
+				option_RenderEngine = true, //Use the 3D graphics acceleration
 				option_SphereQuality = 20, //how many tessalations to use when drawing spheres, more = higher resource use
 				option_ZoomOnClick = false, //Zoom ahead when the mouse is clicked
 				option_SolarSystem3DSizeXZ = 400, // how many "3d" pixels to use in the system length, width
-				option_SolarSystem3DSizeY = 250, // how many "3d" pixels to use in the system's height
+				option_SolarSystem3DSizeY = 400, // how many "3d" pixels to use in the system's height
 				option_TimeAdvanceType = 'd', // 'h','m','d','s', rate; how often to advance per second
 				option_TargetFPS = 30; // Goal for # of frames per second
 			
 			var planetmeshlist = [];
 			
-			var container, stats, timedisplay, planetinfo, cameraControl;
+			var container, stats, timedisplay, div_planetinfo, div_info, cameraControl;
 			var camera, moveForward, moveBackward, moveShouldStop=false;
 			var mesh, scene, renderer, projector, texture_placeholder;
 			var loginfo=0;
+			var firstSceneToRender=true;
+			var texture_level='low';
 
-
-
-
+			var img_loaded_count = 0;
+			
+			
 			function preloader() {
-				document.getElementById('container').innerHTML="<br/><br/><br/><br/><h1>Loading Images</h1>";
+				container = document.getElementById( 'container'  );
 
-				 // create object
-				 imageObj = new Image();
+				container.innerHTML="<br/><br/><br/><br/><h1>Loading Images: <span id='imgloadpercent'>0%</span></h1>";
+				var imgloadpercent = document.getElementById( 'imgloadpercent' );
+
+				//Initialize planets
+				Celestial.init(planet_init_list,option_SolarSystem3DSizeXZ,option_SolarSystem3DSizeY);
 			
-				 // set image list
-				 images = new Array();
-				 images[0]="textures/Sol_surface.jpg"
-				 images[1]="textures/Mercury_surface.jpg"
-				 images[2]="textures/Venus_surface.jpg"
-				 images[3]="textures/Earth_surface.jpg"
-				 images[4]="textures/Mars_surface.jpg"
-				 images[5]="textures/Jupiter_surface.jpg"
-				 images[6]="textures/Saturn_surface.jpg"
-				 images[7]="textures/Uranus_surface.jpg"
-				 images[8]="textures/Neptune_surface.jpg"
-				 images[9]="textures/Pluto_surface.jpg"
-				 images[10]="textures/skybox/hot_nebula_90.jpg"
-				 images[11]="textures/skybox/hot_nebula_270.jpg"
-				 images[12]="textures/skybox/hot_nebula_top.jpg"
-				 images[13]="textures/skybox/hot_nebula_bottom.jpg"
-				 images[14]="textures/skybox/hot_nebula_0.jpg"
-				 images[15]="textures/skybox/hot_nebula_180.jpg"
+				//Build the array of all planet textures to load
+				images = new Array();
+				for ( var i = 0, l = Celestial.planetsCount(); i < l; i ++ ) {
+					images.push(Celestial.planetInfo(i,'texture','low'));
+					images.push(Celestial.planetInfo(i,'texture','med'));
+					images.push(Celestial.planetInfo(i,'texture','high'));
+//					images.push(Celestial.planetInfo(i,'texture','max'));
+				}
+					
+				 images.push("textures/sun.png");
+// 				 images.push("textures/skybox/"+texture_level+"/hot_nebula_90.jpg");
+// 				 images.push("textures/skybox/"+texture_level+"/hot_nebula_270.jpg");
+// 				 images.push("textures/skybox/"+texture_level+"/hot_nebula_top.jpg");
+// 				 images.push("textures/skybox/"+texture_level+"/hot_nebula_bottom.jpg");
+// 				 images.push("textures/skybox/"+texture_level+"/hot_nebula_0.jpg");
+// 				 images.push("textures/skybox/"+texture_level+"/hot_nebula_180.jpg");
 			
-				 // start preloading
-				 for(var i=0; i<images.length; i++) 
-				 {
-					  imageObj.src=images[i];
-				 }
-				 
-				//Start the simulation
-				document.getElementById('container').innerHTML="";
-				init();
-				animate();
+				 // Start preloading
+				for ( var i=0, l=images.length; i<l; i++ ) {
+					imageObj = new Image();
+				 	imageObj.src=images[i];
+				 	imageObj.onload = function() {
+						imgloadpercent.innerHTML= ((img_loaded_count * 100) / l).toFixed(2) + "%";
+				 		img_loaded_count++;
+				 		if (img_loaded_count == l) {
+							container.innerHTML="";
+							//Start the simulation
+							init();
+							animate();
+						}
+				 	}
+				}
 			} 
 
 
 			function init() {
-				container = document.getElementById( 'container'  );
 				timedisplay=document.getElementById( 'timedisplay');
-				planetinfo =document.getElementById( 'planetinfo' );
-
-				init_camera();
+				div_planetinfo =document.getElementById( 'div_planetinfo' );
+				div_info=document.getElementById( 'div_info' );
 
 				scene = new THREE.Scene();
-		
+
+				init_camera();
 				init_sky();
-				//init_cylinder();
 				init_grid();
-				//init_shadow();
 				init_planets();
-				
-//				scene.addLight( new THREE.AmbientLight( 0x202020 ) );
-				
 				init_renderer();
-				
 				init_stats();
-				clickit();
+
+				advanceAndPosition();
+				planetWasClicked(0);
 			}
-			function init_sky() {
-				texture_placeholder = document.createElement( 'canvas' );
-				texture_placeholder.width = 512;
-				texture_placeholder.height = 512;
+			//=======================================
+			function generateSunTexture(color, size, showShell) {
+				var size = (size) ? parseInt(size*24) : 24;
+				var showShell = (showShell) ? showShell : false;
+				var canvas = document.createElement( 'canvas' );
+				canvas.width = size;
+				canvas.height = size;
+				var col = new THREE.Color(color);
 				
-				//Textures from Flex2D Cookbox - http://code.google.com/p/flex3cookbook1/downloads/list
-				var materials = [
-					loadTexture( 'textures/skybox/hot_nebula_90.jpg' ), // left
-					loadTexture( 'textures/skybox/hot_nebula_270.jpg' ), // right
-					loadTexture( 'textures/skybox/hot_nebula_top.jpg' ), // top
-					loadTexture( 'textures/skybox/hot_nebula_bottom.jpg' ), // bottom
-					loadTexture( 'textures/skybox/hot_nebula_0.jpg' ), // back
-					loadTexture( 'textures/skybox/hot_nebula_180.jpg' )  // front
-// 					loadTexture( 'textures/skybox/night_1.jpg' ), // right
-// 					loadTexture( 'textures/skybox/night_2.jpg' ), // left
-// 					loadTexture( 'textures/skybox/night_3.jpg' ), // top
-// 					loadTexture( 'textures/skybox/night_4.jpg' ), // bottom
-// 					loadTexture( 'textures/skybox/night_5.jpg' ), // back
-// 					loadTexture( 'textures/skybox/night_7.jpg' )  // front
-				];
-
-				mesh = new THREE.Mesh( new Cube( option_SolarSystem3DSizeXZ*5, option_SolarSystem3DSizeXZ*5, option_SolarSystem3DSizeXZ*5, 7, 7, materials, true ), new THREE.MeshFaceMaterial() );
-				mesh.overdraw = true;
-				scene.addObject( mesh );			
-			}
-			function init_cylinder() {
-				// Top and bottom Cylinders (flat, so they look like circles)				
-				// ( numSegs, topRad, botRad, height, topOffset, botOffset )
-				var cylinder = new THREE.Mesh(new Cylinder( 20, option_SolarSystem3DSizeXZ, option_SolarSystem3DSizeXZ, 0, 0, 0),
-					[new THREE.MeshBasicMaterial( {color: 0x222222, opacity: 1} ) ,
-					 new THREE.MeshBasicMaterial( {color: 0x222222, wireframe: true }) ] );
-				cylinder.position.x = 0;
-				cylinder.position.y = ( option_SolarSystem3DSizeY);
-				cylinder.position.z = 0;
-				cylinder.rotation.x = (Math.PI / 2);
-				scene.addObject(cylinder);
-
-				var cylinder = new THREE.Mesh(new Cylinder( 20, option_SolarSystem3DSizeXZ, option_SolarSystem3DSizeXZ, 0, 0, 0),
-					[new THREE.MeshBasicMaterial( {color: 0x222222, opacity: 1} ) ,
-					 new THREE.MeshBasicMaterial( {color: 0x222222, wireframe: true }) ] );			 
-				cylinder.position.x = 0;
-				cylinder.position.y = (-1 * option_SolarSystem3DSizeY);
-				cylinder.position.z = 0;
-				cylinder.rotation.x = (Math.PI / 2);
-				scene.addObject(cylinder);
-
-			}			
-			function init_grid() {
-				// Grid
-				var geometry = new THREE.Geometry();
-				geometry.vertices.push( new THREE.Vertex( new THREE.Vector3( -1 * option_SolarSystem3DSizeXZ, 0, 0 ) ) );
-				geometry.vertices.push( new THREE.Vertex( new THREE.Vector3( option_SolarSystem3DSizeXZ, 0, 0 ) ) );
-
-				var material = new THREE.LineBasicMaterial( { color: 0x222222, opacity: 0.8 } );
-				var lineSteps = 10;
-				for ( var i = 0; i <= lineSteps; i ++ ) {
-					var step = (option_SolarSystem3DSizeXZ *2) / lineSteps;
-
-					var line = new THREE.Line( geometry, material );
-					line.position.y = 0;
-					line.position.z = ( i * step ) - option_SolarSystem3DSizeXZ;
-					scene.addObject( line );
-
-					var line = new THREE.Line( geometry, material );
-					line.position.x = ( i * step ) - option_SolarSystem3DSizeXZ;
-					line.position.y = 0;
-					line.rotation.y = Math.PI / 2;
-					scene.addObject( line );
-
+				var context = canvas.getContext( '2d' );
+				var gradient = context.createRadialGradient( canvas.width / 2, canvas.height / 2, 0, canvas.width / 2, canvas.height / 2, canvas.width / 2 );
+				gradient.addColorStop( 0, col.rgbaString);
+				gradient.addColorStop( 0.1, col.rgbaString);
+				gradient.addColorStop( 0.6, 'rgba(125, 20, 0, 0.2)' );
+				if (showShell) {
+					gradient.addColorStop( 0.88, 'rgba(0, 20, 0, 1)' );
+					gradient.addColorStop( 0.9, 'rgba(255, 255, 255, 0.2)' );
 				}
-				console.log('Grid created and added to Scene.  SceneObjects now:'+scene.objects.length);
+				gradient.addColorStop( .92, 'rgba(0,0,0,0)' );
+				context.fillStyle = gradient;
+				context.fillRect( 0, 0, canvas.width, canvas.height );
+				return canvas;
+
 			}
-			function init_shadow() {
-				mesh = new THREE.Mesh( new Plane( 300, 300, 3, 3 ), new THREE.MeshBasicMaterial( { map: ImageUtils.loadTexture( 'textures/shadow.png' ) } ) );
-				mesh.position.y = - 250;
-				mesh.rotation.x = - 90 * Math.PI / 180;
-				scene.addObject(mesh);
-				console.log('Shadow created and added to Scene.  SceneObjects now:'+scene.objects.length);
+			//=======================================
+			function init_sky() {
+
+				//Textures from Flex2D Cookbox - http://code.google.com/p/flex3cookbook1/downloads/list
+				var path = "textures/skybox/"+texture_level+"/hot_nebula_";
+				var format = '.jpg';
+				var urls = [path + '90' + format, path + '270' + format,
+							path + 'top' + format, path + 'bottom' + format,
+							path + '0' + format, path + '180' + format ];
+
+				var textureCube = ImageUtils.loadTextureCube( urls, new THREE.CubeRefractionMapping() );
+				var material = new THREE.MeshBasicMaterial( { color: 0xffffff, env_map: textureCube, refraction_ratio: 0.95 } );
+
+				if (option_RenderEngine == "webgl") {
+					SceneUtils.addPanoramaCubeWebGL( scene, option_SolarSystem3DSizeXZ*5, textureCube );
+				} else { //TODO: Not working
+					SceneUtils.addPanoramaCube( scene, option_SolarSystem3DSizeXZ*5, urls );
+				}	
 			}
 			function init_planets() {
-				Celestial.init(planet_init_list,option_SolarSystem3DSizeXZ,option_SolarSystem3DSizeY);
 
-				var resolution = 60;
+				var resolution = 30;
 				var size = 360 / resolution;
-			
+
 				material = new THREE.LineBasicMaterial( { color: 0x008080, opacity: 0.5, blending: THREE.AdditiveBlending } );
 
 				for ( var i = 0, l = Celestial.planetsCount(); i < l; i ++ ) {
 					var mesh = create_planet(i);
 					if (Celestial.planetInfo(i,'type') == 'star') {
-						//NOTE: Only works in Canvas mode
-						particle = new THREE.Particle( new THREE.ParticleBasicMaterial( { map: ImageUtils.loadTexture( 'textures/sun.png' ), blending: THREE.AdditiveBlending } ) );
-						scene.addObject( particle );
 
-						var meshstar = new THREE.Mesh( new Sphere( Celestial.planetInfo(i,'pixelwidth')*1.2,option_SphereQuality,option_SphereQuality ),
-								   	   new THREE.MeshBasicMaterial( { color: 0x665500, blending: THREE.AdditiveBlending }) );
-						meshstar.overdraw = true;
-						scene.addObject( meshstar );
-						
-						cameraControl.targetPlanet = mesh;
+						if (option_RenderEngine == "webgl") {
+							var meshstar = new THREE.Mesh( new Sphere( Celestial.planetInfo(i,'pixelwidth')*1.1,8,8 ),
+										   new THREE.MeshBasicMaterial( { color: 0x665500, blending: THREE.AdditiveBlending }) );
+							meshstar.overdraw = true;
+//							scene.addObject( meshstar );
+						} else {
+//TODO: Update Textures
+							var materialstar = new THREE.ParticleBasicMaterial( { map: new THREE.Texture( generateSunTexture(0xfff2a1,3) ), blending: THREE.AdditiveBlending } );
+							var particle = new THREE.Particle( materialstar );
+							particle.position.x = 0;
+							particle.position.y = 0;
+							particle.position.z = 0;
+							particle.scale.x = particle.scale.y = .4;
+							particle.isClickable = false;
+							particle.name = "Sol";
+							particle.starid = 0;
+							scene.addObject( particle );
+
+//							particle = new THREE.Particle( new THREE.ParticleBasicMaterial( { map: ImageUtils.loadTexture( 'textures/sun.png' ), blending: THREE.AdditiveBlending } ) );
+//							scene.addObject( particle );
+						}
+						cameraControl.targetObject = mesh;
 					} else {
 						//For each step of the planet's location, build a series of orbit lines
 						var orbitepochstep = Celestial.Planets[i].orbit_sidereal_in_days / resolution;
@@ -275,89 +257,61 @@
 					}
 					planetmeshlist.push( mesh );
 					scene.addObject( mesh );
-
-
 				}			
 				console.log('Planets created and added to Scene.  SceneObjects now:'+scene.objects.length);
 			}
-			function init_camera() {
-				camera = new THREE.Camera( 60, window.innerWidth / window.innerHeight, 1, 10000 );
-//				camera = new THREE.QuakeCamera( { fov: 60, aspect: window.innerWidth / window.innerHeight, near: 1, far: 20000,
-//												  movementSpeed: 10, lookSpeed: 0.004, noFly: false, lookVertical: true } );
-
-				camera.target.position.z = 0;
-
-				camera.position.y = option_SolarSystem3DSizeXZ/2;
-				camera.position.z = option_SolarSystem3DSizeXZ/2;
-				document.addEventListener( 'contextmenu', function ( event ) { event.preventDefault(); }, false ); //prevent right click menu
-				window.addEventListener( 'resize', onWindowResize, false );
-
-				projector = new THREE.Projector();
-				cameraControl = new CameraControlWASD( camera, 10, 0.005, true, false );
-			}
-
-
-			function init_renderer() {
-				var renderer_created = true;
-				if (option_RenderWebGL) {
-					try {
-						renderer = new THREE.WebGLRenderer();
-						console.log("WebGL Renderer initialized");
-						renderer_created = true;
- 					} catch (err) {
- 						console.log("WebGL Rendering failed");
- 						option_RenderWebGL = false;
- 					}
- 				}
- 				if (!option_RenderWebGL) {
- 					try {
- 						renderer = new THREE.CanvasRenderer();
- 						console.log("Canvas Renderer initialized");
- 						option_PanScreenWithMouse = false;
- //						option_TargetFPS = 1;
- 					} catch (err) {
- 						renderer_created = false;
- 					}
- 				}
- 				if (renderer_created) {
-					renderer.setSize( window.innerWidth, window.innerHeight );
-					container.appendChild( renderer.domElement );
- 				} else {
- 					container.innerHTML = "<br/><br/><br/><h1>3D Rendering could not load</h1>";
- 					console.log("FAIL! No renderer able to load");
- 				}
-			}
-			function init_stats() {
-				stats = new Stats();
-				stats.domElement.style.position = 'absolute';
-				stats.domElement.style.top = '0px';
-				container.appendChild( stats.domElement );
-			}					
-
-			function loadTexture( path ) {
-			//TODO: Use the ImageUtils one correctly
-				var texture = new THREE.Texture( texture_placeholder ),
-					material = new THREE.MeshBasicMaterial( { map: texture } ),
-					image = new Image();
-				image.onload = function () {
-					texture.needsUpdate = true;
-					material.map.image = this;
-//					render();
-				};
-				image.src = path;
-				return material;
-			}			
 			function create_planet(planetid) {
-				var mesh = new THREE.Mesh( new Sphere( Celestial.planetInfo(planetid,'pixelwidth'),option_SphereQuality,option_SphereQuality ),
-					   new THREE.MeshBasicMaterial( { map: ImageUtils.loadTexture( Celestial.planetInfo(planetid,'texture')) } ) );
-				mesh.overdraw = true;
-				//TODO: Use PosRot
-				mesh.position = Celestial.planetInfo(planetid,'position');
-				mesh.rotation = Celestial.planetInfo(planetid,'rotation');
-				mesh.name = Celestial.planetInfo(planetid,'name');
-				mesh.planetid = planetid;
-				return mesh;
+
+				var pcolor = Celestial.planetInfo(planetid,'color');
+				var material = [
+							[ new THREE.MeshBasicMaterial( { map: ImageUtils.loadTexture( Celestial.planetInfo(planetid,'texture','high')) } ) ],
+							[ new THREE.MeshBasicMaterial( { map: ImageUtils.loadTexture( Celestial.planetInfo(planetid,'texture','med')) } ) ],
+							[ new THREE.MeshBasicMaterial( { map: ImageUtils.loadTexture( Celestial.planetInfo(planetid,'texture','low')) } ) ],
+							[ new THREE.MeshBasicMaterial( { map: ImageUtils.loadTexture( Celestial.planetInfo(planetid,'texture','low')) } ) ],
+							[ new THREE.MeshLambertMaterial( { color: pcolor } ) ],
+							[ new THREE.MeshLambertMaterial( { color: pcolor } ) ],
+							[ new THREE.MeshLambertMaterial( { color: pcolor } ) ],
+							[ new THREE.MeshLambertMaterial( { color: pcolor } ) ],
+						];
+//							new THREE.MeshLambertMaterial( { color: 0xffffff } ),
+//							new THREE.MeshBasicMaterial( { color: 0xff0000, opacity: 0.5, wireframe: true } )
+
+				var planet_width = Celestial.planetInfo(planetid,'pixelwidth');
+				var geometry = [
+							[ new Sphere( planet_width, 12, 8 ), parseInt(3*planet_width) ],
+							[ new Sphere( planet_width, 10, 5 ), parseInt(7*planet_width) ],
+							[ new Sphere( planet_width, 8, 4 ), parseInt(12*planet_width) ],
+							[ new Sphere( planet_width, 5, 4 ), parseInt(30*planet_width) ],
+							[ new Sphere( planet_width, 4, 3 ), parseInt(70*planet_width) ],
+							[ new Sphere( planet_width, 3, 3 ), parseInt(100*planet_width) ],
+							[ new Sphere( planet_width, 2, 2 ), parseInt(150*planet_width) ],
+							[ new Sphere( planet_width, 1, 1 ), parseInt(200*planet_width) ]
+						  ];
+				var i, j, mesh, lod;
+
+				lod = new THREE.LOD();
+
+				for ( i = 0; i < geometry.length; i++ ) {
+
+					mesh = new THREE.Mesh( geometry[ i ][ 0 ], material[i] );
+					mesh.name = Celestial.planetInfo(planetid,'name');
+					mesh.planetid = planetid;
+					mesh.isClickable = true;
+					mesh.overdraw = true;
+					lod.add( mesh, geometry[ i ][ 1 ] );
+
+				}
+
+				var orbitpos = Celestial.planetInfo(planetid,'posrot');
+				lod.position = new THREE.Vector3(
+							orbitpos.position.x,
+							orbitpos.position.y,
+							orbitpos.position.z);
+				lod.rotation = orbitpos.rotation;
+				
+				return lod;
 			}
+			//=========================================
 			function resizePlanets() {
 				for ( var i = 0, l = planetmeshlist.length; i < l; i++ ) {
 					renderer.removeObject( scene, planetmeshlist[i] );
@@ -428,14 +382,14 @@
 			}
 			function planetWasClicked(planetid) {
 				var P = Celestial.Planets[planetid];
-				cameraControl.targetPlanet = planetmeshlist[planetid];
 				console.log("Planet "+P.planetName +" was clicked");
 				
 				var strP = "<div id='planetname'>"+P.planetName+"</div>";
 				strP+= "<img src='"+Celestial.planetInfo(planetid,'texture')+"' height='130'>"
 
-				planetinfo.innerHTML = strP;
-				
+				div_planetinfo.innerHTML = strP;
+
+//				cameraControl.targetObject = planetmeshlist[planetid];
 			}
 			function advanceAndPosition() {
 				switch(option_TimeAdvanceType) {
@@ -455,16 +409,112 @@
 				
 				for ( var i = 0, l = planetmeshlist.length; i < l; i++ ) {
 					var posrot = Celestial.planetInfo(i,'posrot');
-					planetmeshlist[i].position = posrot.position;//Celestial.planetInfo(i,'position');
-					planetmeshlist[i].position.subSelf = function () {}; //Added because Celestial doesn't return a three.js position object
-					planetmeshlist[i].position.addSelf = function () {}; //Added because Celestial doesn't return a three.js position object
+ 					planetmeshlist[i].position = posrot.position;//Celestial.planetInfo(i,'position');
+ 					planetmeshlist[i].position.subSelf = function () {}; //Added because Celestial doesn't return a three.js position object
+ 					planetmeshlist[i].position.addSelf = function () {}; //Added because Celestial doesn't return a three.js position object
+ 					planetmeshlist[i].rotation = posrot.rotation;//Celestial.planetInfo(i,'rotation');
 
-					planetmeshlist[i].rotation = posrot.rotation;//Celestial.planetInfo(i,'rotation');
+// 					var orbitpos = Celestial.planetInfo(i,'posrot');
+// 					planetmeshlist[i].position = new THREE.Vector3(
+// 								orbitpos.position.x,
+// 								orbitpos.position.y,
+// 								orbitpos.position.z);
+// 					planetmeshlist[i].rotation = orbitpos.rotation;
 				}
 				timedisplay.innerHTML = Celestial.displayTime();			
 			}
 
+
+			//=========================================
+			function init_grid() {
+				// Grid
+				var geometry = new THREE.Geometry();
+				geometry.vertices.push( new THREE.Vertex( new THREE.Vector3( -1 * 200, 0, 0 ) ) );
+				geometry.vertices.push( new THREE.Vertex( new THREE.Vector3( 200, 0, 0 ) ) );
+
+				var material = new THREE.LineBasicMaterial( { color: 0x444444, opacity: 0.8 } );
+				var lineSteps = 10;
+				for ( var i = 0; i <= lineSteps; i ++ ) {
+					var step = (200 *2) / lineSteps;
+
+					var line = new THREE.Line( geometry, material );
+					line.position.y = 0;
+					line.position.z = ( i * step ) - 200;
+					scene.addObject( line );
+
+					var line = new THREE.Line( geometry, material );
+					line.position.x = ( i * step ) - 200;
+					line.position.y = 0;
+					line.rotation.y = Math.PI / 2;
+					scene.addObject( line );
+
+				}
+				console.log('Grid created and added to Scene.  SceneObjects now:'+scene.objects.length);
+			}
+			function init_camera() {
+				camera = new THREE.Camera( 60, window.innerWidth / window.innerHeight, 1, 10000 );
+
+				camera.position.y = option_SolarSystem3DSizeY/6;
+				camera.position.z = option_SolarSystem3DSizeXZ/6;
+				window.addEventListener( 'resize', onWindowResize, false );
+
+				projector = new THREE.Projector();
+				cameraControl = new CameraControlWASD( camera, 10, 0.005, true, false );
+			}
+			function init_stats() {
+				stats = new Stats();
+				stats.domElement.style.position = 'absolute';
+				stats.domElement.style.top = '0px';
+				container.appendChild( stats.domElement );
+			}					
+
+			function queryString(q) {
+				hu = window.location.search.substring(1);
+				gy = hu.split("&");
+				var result = null;
+				for (i=0;i<gy.length;i++) {
+					ft = gy[i].split("=");
+					if (ft[0] == q) {
+						result = ft[1]; break;
+					}
+				}
+				return result;
+			}
+			function init_renderer() {
+				var renderer_created = false;
+				var requested_renderer = queryString("renderer");
+				if (!requested_renderer) requested_renderer="canvas";
+				try {
+					switch(requested_renderer) {
+						case "webgl": renderer = new THREE.WebGLRenderer(); break;
+						case "canvas": renderer = new THREE.CanvasRenderer(); break;
+						case "svg": renderer = new THREE.SVGRenderer(); break;
+						case "dom": renderer = new THREE.DOMRenderer(); break;
+						default: break;
+					}
+					option_RenderEngine = requested_renderer;
+					console.log('Rendering: '+requested_renderer);
+					renderer_created = true;
+				} catch (err) {
+					//Try canvas
+					console.log("WebGL Rendering failed");
+					renderer = new THREE.CanvasRenderer();
+					console.log('Rendering: Canvas');
+					option_RenderEngine = "canvas";
+					renderer_created = true;
+				}
+	
+ 				if (renderer_created) {
+					renderer.setSize( window.innerWidth, window.innerHeight );
+					container.appendChild( renderer.domElement );
+ 				} else {
+ 					container.innerHTML = "<br/><br/><br/><h1>3D Rendering could not load</h1>";
+ 					console.log("FAIL! No renderer able to load");
+ 				}
+			}
+			
 			function onWindowResize( event ) {
+				//When rotated, resize the window and rendering space
 			
 				var width = window.innerWidth, height = window.innerHeight;
 			
@@ -474,21 +524,20 @@
 				renderer.setSize( width, height );
 				renderer.domElement.style.width = window.innerWidth + 'px';
 				renderer.domElement.style.height = window.innerHeight + 'px';
-			
 			}
-
 			function animate() {
-				advanceAndPosition(); //TODO: Move to a seperate loop?
+				//Animate these as often as possible - up to 60fps
 				cameraControl.update();
 				requestAnimationFrame( animate );
-
 				render();
 				stats.update();
+				advanceAndPosition();
+
 			}
 			function render() {
+				//Render the updated canvas
 				renderer.render( scene, camera );
 			}
-
 		</script>
 
 	</body>

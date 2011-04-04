@@ -29,6 +29,7 @@ var Celestial = {
 	time_display_method: 'yearday', //'yearday', 'date'
 	spacingMethod: 'realistic', //'evenly', 'realistic', 'artistic'
 	sizingMethod: 'realistic', //'equal', 'realistic', 'artistic'
+	texture_level: 'low', //'high' or 'low'
 	pixelSizeXZ: 250,
 	pixelSizeY: 250,
 	furthest_planet:-1,
@@ -258,16 +259,21 @@ if (loginfo>0)	console.log("Planet:" + planetid + " x:"+pos.x+" z:"+pos.z + " SQ
 	planetsCount: function() {
 		return Celestial.Planets.length;
 	},
-	planetInfo: function(planetid, infotype, epoch) {
+	planetInfo: function(planetid, infotype, option) {
 		switch(infotype) {
 		case 'type':
 		  return Celestial.Planets[planetid].orbit_calc_method ;
 		  break;
+		case 'color':
+		  return Celestial.Planets[planetid].color ;
+		  break;
 		case 'texture':
-		  return (Celestial.Planets[planetid].texture) ? Celestial.Planets[planetid].texture : 'textures/'+Celestial.Planets[planetid].planetName+'_surface.jpg';
+		  var textureLevel = option ? option : Celestial.texture_level;
+//TODO:		  var texture = Celestial.Planets[planetid].texture ? Celestial.Planets[planetid].texture : 'default.jpg';
+		  return 'textures/'+textureLevel+'/'+Celestial.Planets[planetid].planetName+'_surface.jpg';
 		  break;
 		case 'posrot':
-		  return Celestial.planetLocation(planetid, epoch);
+		  return Celestial.planetLocation(planetid, option);
 		  break;
 		case 'position':
 		  return {x:(planetid * (Celestial.pixelSizeXZ / Celestial.Planets.length)),y:0, z:0}; //TODO, use PlanetLocation
@@ -427,7 +433,7 @@ if (loginfo>0)	console.log("Planet:" + planetid + " x:"+pos.x+" z:"+pos.z + " SQ
 	planetSizing: function(planetid) {
 		switch(Celestial.sizingMethod) {
 		case 'realistic':
-			if (planetid == 0) return 3;
+			if (planetid == 0) return 2;
 			return 1;
 			break;
 		case 'equal':
